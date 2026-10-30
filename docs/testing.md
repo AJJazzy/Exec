@@ -120,7 +120,9 @@ The self-test also captures each section of the window (Home, Editor, Library, R
 Compatibility, Diagnostics, Settings) as PNGs, uploaded as the `self-test` CI artifact. Reviewing
 them found three UI defects, all fixed in commit `085bed3`: the toolbar Run button stayed disabled
 and the target picker was blank (toolbar state was not observed), the status bar showed a wrong
-column after loading, and "not installed" was rendered in error red.
+column after loading, and "not installed" was rendered in error red. The fixes were verified in the
+screenshots of run [41070306993](https://github.com/AJJazzy/Exec/actions/runs/41070306993) (17/17
+self-test checks passed again). Three of those screenshots are in `docs/images/`.
 
 **Packaging**: `scripts/package/package-macos.sh` produced `Nexus-1.0.0-macOS.zip`, a `.dmg` and
 `SHA256SUMS`. `codesign --display` reports

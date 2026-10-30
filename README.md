@@ -13,6 +13,12 @@ A native macOS scripting environment for Luau, built around a C++20 core and the
 > and signature, and explains exactly why live execution is unavailable. The full evidence is in
 > [`docs/feasibility.md`](docs/feasibility.md).
 
+![Nexus editor running scripts in the sandboxed runtime](docs/images/editor.png)
+
+*Captured by the app's own self-test on a GitHub Actions macOS 15 runner: the Luau editor with an
+inline compatibility warning, plus console output from sandboxed runs, a runtime error, a stopped
+infinite loop and the refused Roblox Player target.*
+
 ## What Nexus does
 
 | Capability | Status |
@@ -71,6 +77,10 @@ signing and notarization.
 * [Test results](docs/testing.md)
 * [Installation](docs/installation.md)
 * [Troubleshooting](docs/troubleshooting.md)
+
+| Roblox Integration | Compatibility |
+|---|---|
+| ![Roblox Integration view](docs/images/roblox-integration.png) | ![Compatibility view](docs/images/compatibility.png) |
 
 ## Licence
 

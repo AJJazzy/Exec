@@ -16,9 +16,11 @@ namespace {
 struct Fixture {
     Logger logger;
     TargetRegistry targets;
-    std::unique_ptr<SessionManager> sessions;
     std::mutex mutex;
     std::vector<SessionState> states;
+    // Declared last so it is destroyed first: its worker thread may still be delivering the final
+    // event to the listener below (which uses `mutex` and `states`).
+    std::unique_ptr<SessionManager> sessions;
 
     explicit Fixture(size_t consoleCapacity = 1000) {
         targets.add(std::make_shared<InProcessTarget>());
@@ -30,6 +32,8 @@ struct Fixture {
             }
         });
     }
+
+    ~Fixture() { sessions->shutdown(); }
 
     ExecutionRequest request(const std::string& src, int timeoutMs = 5000) {
         ExecutionRequest r;

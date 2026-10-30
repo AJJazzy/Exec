@@ -170,7 +170,7 @@ std::string isoTimestamp(std::chrono::system_clock::time_point tp) {
     std::time_t secs = static_cast<std::time_t>(ms / 1000);
     std::tm tm{};
     gmtime_r(&secs, &tm);
-    char buf[40];
+    char buf[64];
     std::snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
                   tm.tm_min, tm.tm_sec, static_cast<int>(ms % 1000));
     return buf;

@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux — core, CLI, tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DNEXUS_WERROR=ON
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  macos:
+    name: macOS — universal app (Xcode project), tests, launch self-test, package
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+          cmake --version
+      - name: Generate Xcode project (arm64 + x86_64)
+        run: cmake -S . -B build/xcode -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+      - name: Build (Release)
+        run: cmake --build build/xcode --config Release -- -quiet
+      - name: Test
+        run: ctest --test-dir build/xcode -C Release --output-on-failure
+      - name: Inspect binaries
+        run: |
+          APP=build/xcode/bin/Release/Nexus.app
+          ls -la "$APP/Contents/MacOS"
+          lipo -info "$APP/Contents/MacOS/Nexus" "$APP/Contents/MacOS/nexus-runner" build/xcode/bin/Release/nexus-cli
+          plutil -p "$APP/Contents/Info.plist"
+          "$APP/Contents/MacOS/nexus-runner" --version
+          "$APP/Contents/MacOS/nexus-runner" --probe-sandbox
+          build/xcode/bin/Release/nexus-cli roblox --ephemeral
+      - name: Launch the app (self-test)
+        run: |
+          mkdir -p "$RUNNER_TEMP/selftest"
+          APP=build/xcode/bin/Release/Nexus.app
+          "$APP/Contents/MacOS/Nexus" --self-test "$RUNNER_TEMP/selftest/result.json" --data-dir "$RUNNER_TEMP/nexus-data" &
+          PID=$!
+          for i in $(seq 1 180); do
+            if ! kill -0 $PID 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if kill -0 $PID 2>/dev/null; then echo "self-test did not finish in time"; kill -9 $PID; exit 1; fi
+          wait $PID || true
+          cat "$RUNNER_TEMP/selftest/result.json"
+          python3 -c "import json,sys; r=json.load(open(sys.argv[1])); sys.exit(0 if r['allPassed'] else 1)" "$RUNNER_TEMP/selftest/result.json"
+      - name: Package (ad hoc signature)
+        run: scripts/package/package-macos.sh build/xcode/bin/Release/Nexus.app dist
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-macOS
+          path: dist/
+      - name: Upload self-test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-test
+          path: ${{ runner.temp }}/selftest/

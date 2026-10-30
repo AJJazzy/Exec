@@ -1,0 +1,6 @@
+add_library(nexus_host STATIC src/nexus_host.cpp)
+add_library(Nexus::host ALIAS nexus_host)
+target_include_directories(nexus_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(nexus_host PUBLIC nexus_integrations nexus_core nexus_platform)
+target_compile_definitions(nexus_host PRIVATE NEXUS_VERSION="${NEXUS_VERSION}")
+nexus_configure_target(nexus_host)

@@ -1,0 +1,9 @@
+/build*/
+/out/
+*.xcodeproj/
+DerivedData/
+.DS_Store
+*.dSYM/
+/dist/
+compile_commands.json
+.cache/

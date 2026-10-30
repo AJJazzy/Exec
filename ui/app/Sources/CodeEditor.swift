@@ -149,7 +149,7 @@ final class LuauTextView: NSTextView {
 final class LineNumberRuler: NSRulerView {
     private weak var codeView: NSTextView?
     private(set) var lineStarts: [Int] = [0]
-    var markers: [Int: NSColor] = [:] // line (1-based) -> marker colour
+    var lineMarkers: [Int: NSColor] = [:] // line (1-based) -> marker colour
 
     init(textView: NSTextView, scrollView: NSScrollView) {
         codeView = textView
@@ -203,7 +203,7 @@ final class LineNumberRuler: NSRulerView {
             var a = attrs
             if line == currentLine { a[.foregroundColor] = Theme.editorText }
             label.draw(at: NSPoint(x: ruleThickness - size.width - 8, y: y + (fragment.height - size.height) / 2), withAttributes: a)
-            if let color = markers[line + 1] {
+            if let color = lineMarkers[line + 1] {
                 color.setFill()
                 NSBezierPath(ovalIn: NSRect(x: 4, y: y + fragment.height / 2 - 3, width: 6, height: 6)).fill()
             }
@@ -478,7 +478,7 @@ final class CodeEditorController: NSObject, NSTextViewDelegate {
             if markers[d.line] == nil || d.severity == "error" { markers[d.line] = color }
         }
         if runtimeErrorLine > 0 { markers[runtimeErrorLine] = .systemRed }
-        ruler.markers = markers
+        ruler.lineMarkers = markers
         ruler.needsDisplay = true
         document?.diagnostics = diags
         if let storage = textView.textStorage {
@@ -513,7 +513,7 @@ final class CodeEditorController: NSObject, NSTextViewDelegate {
         guard settings.highlightMatchingBrackets, textView.selectedRange().length == 0 else { return }
         let ns = textView.string as NSString
         let caret = textView.selectedRange().location
-        let match = model.host.matchingBracket(source: textView.string, location: caret)
+        let match = model.host.matchingBracket(source: textView.string, location: UInt(caret))
         guard match >= 0, match < ns.length else { return }
         var mine = caret
         if caret < ns.length, "()[]{}".contains(ns.substring(with: NSRange(location: caret, length: 1))) { mine = caret }

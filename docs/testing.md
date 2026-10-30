@@ -59,9 +59,87 @@ there), and the test asserts exactly that.
 | ~8,750 lines: highlight / format / analyze / syntax check | 73 / 43 / 25 / 24 ms |
 | 200,000 printed lines through runtime → session → console | 432 ms; console capped at 5,000 lines |
 
-## Results — macOS (GitHub Actions `macos-15`, Apple Silicon, Xcode 16.4)
+## Results — macOS (GitHub Actions `macos-15` runner: macOS 15.8.2, Apple Silicon, Xcode 16.4, Swift 6.1.2)
 
-See the CI section below. Populated from the CI run that built the universal app.
+Evidence from CI run [41069234288](https://github.com/AJJazzy/Exec/actions/runs/41069234288)
+(and repeated in later runs on this branch). The job generates the Xcode project with CMake,
+builds a **universal (arm64 + x86_64) Release** build, runs the tests, launches the app and
+packages it.
+
+```
+1/8 Test #1: test_core ........................   Passed    0.18 sec
+2/8 Test #2: test_runtime .....................   Passed    1.69 sec
+3/8 Test #3: test_analysis ....................   Passed    0.02 sec
+4/8 Test #4: test_storage .....................   Passed    0.05 sec
+5/8 Test #5: test_sessions ....................   Passed    0.52 sec
+6/8 Test #6: test_roblox ......................   Passed    0.05 sec
+7/8 Test #7: test_integration .................   Passed    4.24 sec
+8/8 Test #8: test_performance .................   Passed    0.67 sec
+100% tests passed out of 8
+```
+
+**Binaries** (`lipo -info`): `Nexus.app/Contents/MacOS/Nexus`, `Nexus.app/Contents/MacOS/nexus-runner`
+and `nexus-cli` are all `x86_64 arm64`. The x86_64 slices were built but not executed (the runner
+is Apple Silicon).
+
+**Sandbox, measured on macOS** (`nexus-runner --probe-sandbox`):
+
+```
+{"sandboxApplied":true,"mechanism":"macOS Seatbelt sandbox_init(kSBXProfilePureComputation)",
+ "detail":"no file system writes, no network, no new processes",
+ "fileWriteBlocked":true,"fileErrno":1,"networkBlocked":true,"networkErrno":1}
+```
+
+The integration test `isolated_runner_sandbox_is_measured_not_assumed` asserts all three on macOS.
+
+**App launch self-test** (`Nexus.app/Contents/MacOS/Nexus --self-test …`): the real application
+starts, opens its window and runs 17 checks through the same code paths as the UI.
+**All 17 passed:**
+
+| Check | Result detail |
+|---|---|
+| window-visible | 1 visible window |
+| editor-highlighting | 12 tokens from the C++ lexer |
+| editor-text-view | text view holds the document |
+| formatter | re-indentation correct |
+| completion | `math.fl` → `floor` |
+| compatibility-analysis | standalone=unavailable, studio=available, player=unavailable |
+| syntax-diagnostics | "Expected identifier when parsing variable name, got '='" |
+| run-isolated-runner | completed in 9.0 ms |
+| console-output | script output reached the console |
+| runner-sandbox-reported | "sandbox: macOS Seatbelt sandbox_init(kSBXProfilePureComputation)" |
+| runtime-error-line | runtime-error on line 2: "attempt to index nil with 'x'" |
+| stop-infinite-loop | `while true do end` stopped by Stop: cancelled after 0.58 s |
+| run-inprocess | completed in 64.0 ms |
+| player-target-refuses | "Not executed: Live execution in the Roblox Player is not supported…" |
+| roblox-player-detection | correctly DISCONNECTED (Roblox is not installed on CI runners) |
+| roblox-studio-detection | correctly DISCONNECTED |
+| library-roundtrip | script saved and read back |
+
+The self-test also captures each section of the window (Home, Editor, Library, Roblox Integration,
+Compatibility, Diagnostics, Settings) as PNGs, uploaded as the `self-test` CI artifact. Reviewing
+them found three UI defects, all fixed in commit `085bed3`: the toolbar Run button stayed disabled
+and the target picker was blank (toolbar state was not observed), the status bar showed a wrong
+column after loading, and "not installed" was rendered in error red.
+
+**Packaging**: `scripts/package/package-macos.sh` produced `Nexus-1.0.0-macOS.zip`, a `.dmg` and
+`SHA256SUMS`. `codesign --display` reports
+`Format=app bundle with Mach-O universal (x86_64 arm64)`, `flags=0x10002(adhoc,runtime)`,
+`Signature=adhoc`, `TeamIdentifier=not set`. In other words: **ad hoc signed with the Hardened
+Runtime, not Developer ID-signed, not notarized.**
+
+### Not verified
+
+* Live Roblox Player execution: not implemented, by design (`docs/feasibility.md`).
+* Roblox Studio integration against a real Studio: neither Studio nor the Player is installed on CI
+  runners or in the development container. Only the mock MCP server was used.
+* Detection of a real installed Roblox Player on macOS: the detection code ran on macOS (correctly
+  reporting "not installed"), and on Linux against the real 0.745 bundle copied into a search
+  path. It has not been run on a Mac with Roblox installed.
+* Execution on Intel hardware.
+* Interactive UI behaviour beyond the self-test (typing, completion pop-up, find bar). It is
+  implemented with standard AppKit facilities but was only exercised programmatically and visually
+  through the screenshots.
 
 ## Reproducing
 

@@ -1,5 +1,7 @@
 # Nexus
 
+[![CI](https://github.com/AJJazzy/Exec/actions/workflows/ci.yml/badge.svg?branch=claude/nexus-macos-roblox-sodu6f)](https://github.com/AJJazzy/Exec/actions/workflows/ci.yml)
+
 A native macOS scripting environment for Luau, built around a C++20 core and the official
 [Luau](https://github.com/luau-lang/luau) implementation, with a SwiftUI + AppKit interface.
 

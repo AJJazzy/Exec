@@ -415,6 +415,7 @@ final class CodeEditorController: NSObject, NSTextViewDelegate {
 
     private func textDidChangeImmediate() {
         ruler.recomputeLines()
+        updateCursorPosition() // selection notifications can arrive before the line table is rebuilt
         minimap.update(text: textView.string)
         highlightWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.applyHighlighting() }
@@ -434,6 +435,10 @@ final class CodeEditorController: NSObject, NSTextViewDelegate {
     func textViewDidChangeSelection(_ notification: Notification) {
         updateBracketMatch()
         ruler.needsDisplay = true
+        updateCursorPosition()
+    }
+
+    private func updateCursorPosition() {
         guard let doc = document else { return }
         let location = textView.selectedRange().location
         let line = ruler.lineIndex(forCharacter: location)

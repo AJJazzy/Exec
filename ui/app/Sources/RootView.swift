@@ -46,30 +46,17 @@ struct RootView: View {
 }
 
 /// Run/Stop/Restart controls, execution target picker and connection status.
+/// ToolbarContent is not re-evaluated reliably when the model changes, so every control whose
+/// state depends on the model lives in a View that observes it.
 struct MainToolbar: ToolbarContent {
-    let model: AppModel // RootView re-evaluates the toolbar whenever the model changes
+    let model: AppModel
 
     var body: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigation) {
-            Button { model.runCurrent() } label: { Label("Run", systemImage: "play.fill") }
-                .help("Run the current script (⌘R)")
-                .disabled(model.isRunning || model.documents.selected == nil)
-            Button { model.stop() } label: { Label("Stop", systemImage: "stop.fill") }
-                .help("Stop the running script (⌘.)")
-                .disabled(!model.isRunning)
-            Button { model.restart() } label: { Label("Restart", systemImage: "arrow.clockwise") }
-                .help("Stop and run the last script again (⇧⌘R)")
-                .disabled(model.history.isEmpty && !model.isRunning)
+        ToolbarItem(placement: .navigation) {
+            RunControls(model: model, store: model.documents)
         }
         ToolbarItem(placement: .principal) {
-            Picker("Target", selection: Binding(get: { model.selectedTarget }, set: { model.selectedTarget = $0 })) {
-                ForEach(model.targets, id: \.identifier) { t in
-                    Text(t.displayName + (t.available ? "" : " — unavailable")).tag(t.identifier)
-                }
-            }
-            .pickerStyle(.menu)
-            .frame(minWidth: 230)
-            .help("Where scripts run. The live Roblox Player is listed for transparency but cannot execute scripts.")
+            TargetPicker(model: model)
         }
         ToolbarItemGroup(placement: .primaryAction) {
             Button { model.analyzeCurrent(); model.section = .compatibility } label: { Label("Check Compatibility", systemImage: "checkmark.shield") }
@@ -82,6 +69,42 @@ struct MainToolbar: ToolbarContent {
                 .help("Clear the console (⌘K)")
             ConnectionStatusButton(model: model)
         }
+    }
+}
+
+struct RunControls: View {
+    @ObservedObject var model: AppModel
+    @ObservedObject var store: DocumentStore
+
+    var body: some View {
+        ControlGroup {
+            Button { model.runCurrent() } label: { Label("Run", systemImage: "play.fill") }
+                .help("Run the current script (⌘R)")
+                .disabled(model.isRunning || store.selected == nil)
+            Button { model.stop() } label: { Label("Stop", systemImage: "stop.fill") }
+                .help("Stop the running script (⌘.)")
+                .disabled(!model.isRunning)
+            Button { model.restart() } label: { Label("Restart", systemImage: "arrow.clockwise") }
+                .help("Stop and run the last script again (⇧⌘R)")
+                .disabled(model.history.isEmpty && !model.isRunning)
+        }
+        .labelStyle(.iconOnly)
+    }
+}
+
+struct TargetPicker: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        Picker("Target", selection: $model.selectedTarget) {
+            ForEach(model.targets, id: \.identifier) { t in
+                Text(t.displayName + (t.available ? "" : " — unavailable")).tag(t.identifier)
+            }
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+        .frame(width: 250)
+        .help("Where scripts run. The live Roblox Player is listed for transparency but cannot execute scripts.")
     }
 }
 

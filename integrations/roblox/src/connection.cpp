@@ -177,6 +177,7 @@ PlayerStatus PlayerMonitor::refresh() {
     if (!st.installed && st.running.empty()) {
         machine_.transition(ConnectionState::Disconnected, "Roblox Player is not installed");
         st.summary = "Roblox Player is not installed in /Applications or ~/Applications";
+        st.unsupportedReasons = unsupportedReasons(std::nullopt); // live execution is unsupported either way
     } else {
         std::string where = st.running.empty() ? "installed, not running" : "running (pid " + std::to_string(st.running.front().pid) + ")";
         machine_.transition(ConnectionState::ClientFound, "Roblox Player " + where);

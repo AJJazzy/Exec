@@ -75,8 +75,8 @@ enum Theme {
         case "CONNECTED", "succeeded", "available", "RUNNING", "STOPPED": return .green
         case "INTEGRATION_AVAILABLE", "partial", "CHECKING_COMPATIBILITY", "DISCOVERING", "CLIENT_FOUND", "COMPILING",
              "INITIALIZING", "READY", "STOPPING", "unknown": return .orange
-        case "UNSUPPORTED", "unavailable": return .secondary
-        case "ERROR", "FAILED", "DISCONNECTED", "runtime-error", "compile-error", "timed-out", "memory-limit",
+        case "UNSUPPORTED", "unavailable", "DISCONNECTED": return .secondary
+        case "ERROR", "FAILED", "runtime-error", "compile-error", "timed-out", "memory-limit",
              "internal-error": return .red
         default: return .secondary
         }
@@ -114,7 +114,7 @@ struct StateBadge: View {
 }
 
 func formatBytes(_ bytes: UInt64) -> String {
-    ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .memory)
+    bytes == 0 ? "—" : ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .memory)
 }
 
 func formatMs(_ ms: Double) -> String {
